@@ -49,6 +49,9 @@ class WorkoutApp:
         # --- Кнопки и управление ---
         tk.Button(root, text="Добавить тренировку", command=self.add_data, bg="#2196F3", fg="white", width=20).grid(
             row=5, column=0, pady=10, padx=5)
+        # Кнопка удаления выбранной записи
+        tk.Button(root, text="Удалить выбранную", command=self.delete_data, bg="#F44336", fg="white", width=20).grid(
+            row=5, column=1, pady=10, padx=5)
 
         # Фрейм аналитики (выбор периода и запуск анализа)
         analysis_frame = tk.Frame(root)
@@ -140,6 +143,41 @@ class WorkoutApp:
             messagebox.showinfo("Успех", "Тренировка добавлена!")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось сохранить: {e}")
+
+    def delete_data(self):
+        """Удаляет выбранную в таблице запись, используя функцию из storage.py."""
+        # 1. Получаем идентификатор выбранной строки
+        selected_item = self.tree.selection()
+        if not selected_item:
+            messagebox.showwarning("Внимание", "Выберите тренировку для удаления в таблице")
+            return
+
+        # 2. Подтверждение удаления
+        if not messagebox.askyesno("Подтверждение", "Вы уверены, что хотите удалить выбранную тренировку?"):
+            return
+
+        # 3. Получаем данные выбранной строки (значения из колонок таблицы)
+        item_data = self.tree.item(selected_item)['values']
+
+        # 4. Загружаем все тренировки из файла
+        all_workouts = load_workouts()
+
+        # 5. Фильтруем: оставляем всё, кроме удаляемого элемента
+        # Сравниваем по значению (item_data[0]), виду спорта (item_data[1]) и дате (item_data[2])
+        new_workouts = [
+            w for w in all_workouts
+            if not (str(w['value']) == str(item_data[0]) and
+                    w['activity'] == item_data[1] and
+                    w['date'] == item_data[2])
+        ]
+
+        # 6. Используем функцию из storage.py
+        from storage import save_all_workouts
+        save_all_workouts(new_workouts)
+
+        # 7. Обновляем таблицу на экране
+        self.refresh_table()
+        messagebox.showinfo("Успех", "Запись удалена")
 
     def refresh_table(self):
         """Загружает актуальные данные из CSV и перерисовывает содержимое таблицы."""
